@@ -1,5 +1,5 @@
 
-import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map } from 'lucide-react';
+import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -11,9 +11,14 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from './ui/button';
 
 export function AppSidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/' },
     { icon: Book, label: 'Modules', path: '/modules' },
@@ -22,6 +27,11 @@ export function AppSidebar() {
     { icon: Map, label: 'Roadmap', path: '/roadmap' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <Sidebar>
@@ -37,14 +47,45 @@ export function AppSidebar() {
       
       <SidebarContent>
         <div className="py-4">
-          <div className="px-4 mb-4 text-center">
-            <Avatar className="h-16 w-16 mx-auto mb-2">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-elearn-blue text-white">JD</AvatarFallback>
-            </Avatar>
-            <div className="font-medium">John Doe</div>
-            <div className="text-xs text-muted-foreground">Team Lead</div>
-          </div>
+          {user ? (
+            <div className="px-4 mb-4 text-center">
+              <Avatar className="h-16 w-16 mx-auto mb-2">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-elearn-blue text-white">
+                  {user.name.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="font-medium">{user.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2 w-full"
+                asChild
+              >
+                <Link to="/profile">
+                  <User className="h-4 w-4 mr-2" />
+                  View Profile
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="px-4 mb-4 text-center">
+              <Avatar className="h-16 w-16 mx-auto mb-2">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-elearn-blue text-white">GU</AvatarFallback>
+              </Avatar>
+              <div className="font-medium">Guest User</div>
+              <div className="text-xs text-muted-foreground">Not Logged In</div>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" className="w-full" asChild>
+                  <Link to="/login">Log In</Link>
+                </Button>
+              </div>
+            </div>
+          )}
           
           <div className="px-3 py-2">
             <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
@@ -68,10 +109,15 @@ export function AppSidebar() {
       
       <SidebarFooter>
         <div className="px-3 py-4">
-          <button className="w-full flex items-center space-x-3 text-sm px-4 py-2 rounded-md hover:bg-muted transition-colors">
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </button>
+          {user && (
+            <button 
+              onClick={handleLogout} 
+              className="w-full flex items-center space-x-3 text-sm px-4 py-2 rounded-md hover:bg-muted transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>

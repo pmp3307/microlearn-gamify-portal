@@ -1,164 +1,127 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { DragDropQuestion, DragDropItem } from '@/types/learning';
+import { DragDropQuestion } from '@/types/learning';
+import { Check, X, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
-interface DragDropQuizProps {
+interface DragDropProps {
   question: DragDropQuestion;
   onAnswer: (questionId: string, isCorrect: boolean) => void;
 }
 
-export const DragDropQuiz: React.FC<DragDropQuizProps> = ({ question, onAnswer }) => {
-  // Create a state object for each category with initially empty arrays
-  const [categorizedItems, setCategorizedItems] = useState<Record<string, DragDropItem[]>>(
-    question.categories.reduce((acc, category) => ({ ...acc, [category]: [] }), {})
-  );
-  
-  // Items that haven't been dragged yet
-  const [remainingItems, setRemainingItems] = useState<DragDropItem[]>([...question.items]);
+export const DragDropQuiz: React.FC<DragDropProps> = ({ question, onAnswer }) => {
+  const [items, setItems] = useState([...question.items]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  
-  const dragItem = useRef<DragDropItem | null>(null);
-  const dragItemSource = useRef<'remaining' | string>('remaining');
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
-  const handleDragStart = (item: DragDropItem, source: 'remaining' | string) => {
-    dragItem.current = item;
-    dragItemSource.current = source;
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedItemId(id);
+    e.dataTransfer.setData('text/plain', id);
+    e.currentTarget.classList.add('opacity-50');
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove('opacity-50');
+    setDraggedItemId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetCategory: string) => {
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     
-    if (!dragItem.current) return;
+    if (!draggedItemId || draggedItemId === targetId) return;
     
-    // Remove the item from its source
-    if (dragItemSource.current === 'remaining') {
-      setRemainingItems(prev => prev.filter(item => item.id !== dragItem.current!.id));
-    } else {
-      setCategorizedItems(prev => ({
-        ...prev,
-        [dragItemSource.current]: prev[dragItemSource.current].filter(item => item.id !== dragItem.current!.id)
-      }));
-    }
+    const itemsCopy = [...items];
+    const draggedItemIndex = itemsCopy.findIndex(item => item.id === draggedItemId);
+    const targetItemIndex = itemsCopy.findIndex(item => item.id === targetId);
     
-    // Add the item to the target category
-    setCategorizedItems(prev => ({
-      ...prev,
-      [targetCategory]: [...prev[targetCategory], dragItem.current!]
-    }));
+    const [draggedItem] = itemsCopy.splice(draggedItemIndex, 1);
+    itemsCopy.splice(targetItemIndex, 0, draggedItem);
     
-    dragItem.current = null;
+    setItems(itemsCopy);
   };
 
   const handleSubmit = () => {
-    // Check if all items have been categorized
-    if (remainingItems.length > 0) return;
-
-    // Check if items are correctly categorized
-    const allCorrect = question.items.every(item => {
-      const category = Object.keys(categorizedItems).find(cat => 
-        categorizedItems[cat].some(catItem => catItem.id === item.id)
-      );
-      return category === item.category;
-    });
-
-    setIsCorrect(allCorrect);
+    // Check if the current order matches the correct order
+    const isOrderCorrect = items.every((item, index) => 
+      item.id === question.correctOrder[index]
+    );
+    
+    setIsCorrect(isOrderCorrect);
     setHasSubmitted(true);
-    onAnswer(question.id, allCorrect);
-  };
-
-  const resetQuiz = () => {
-    setCategorizedItems(question.categories.reduce((acc, category) => ({ ...acc, [category]: [] }), {}));
-    setRemainingItems([...question.items]);
-    setHasSubmitted(false);
+    onAnswer(question.id, isOrderCorrect);
+    
+    if (isOrderCorrect) {
+      toast({
+        title: "Correct!",
+        description: "You've placed the items in the right order.",
+        variant: "default",
+      });
+    } else {
+      toast({
+        title: "Incorrect",
+        description: "Try again - the order is not quite right.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="question-card animate-fade-in">
       <h3 className="text-lg font-semibold mb-4">{question.questionText}</h3>
       
-      {/* Items to drag */}
-      {!hasSubmitted && remainingItems.length > 0 && (
-        <div className="mb-6">
-          <div className="text-sm font-medium mb-2">Drag these items to the appropriate categories:</div>
-          <div className="flex flex-wrap gap-2">
-            {remainingItems.map(item => (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={() => handleDragStart(item, 'remaining')}
-                className="drag-item"
-              >
-                {item.text}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="text-sm text-muted-foreground mb-4">Drag the items to arrange them in the correct order.</p>
       
-      {/* Categories to drop into */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        {question.categories.map(category => (
-          <div key={category} className="space-y-2">
-            <div className="font-medium capitalize">{category}</div>
-            <div
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, category)}
-              className={cn(
-                "drop-target",
-                hasSubmitted && "border-none"
-              )}
-            >
-              {categorizedItems[category].length === 0 && !hasSubmitted && (
-                <div className="text-center text-gray-400">Drop some answers here</div>
-              )}
-              
-              {categorizedItems[category].map(item => (
-                <div 
-                  key={item.id}
-                  draggable={!hasSubmitted}
-                  onDragStart={() => handleDragStart(item, category)}
-                  className={cn(
-                    "drag-item",
-                    hasSubmitted && item.category === category && "bg-green-500",
-                    hasSubmitted && item.category !== category && "bg-red-500"
-                  )}
-                >
-                  {item.text}
-                </div>
-              ))}
-            </div>
+      <div className="space-y-2 mb-6">
+        {items.map((item) => (
+          <div 
+            key={item.id}
+            draggable={!hasSubmitted}
+            onDragStart={(e) => handleDragStart(e, item.id)}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, item.id)}
+            className={cn(
+              "flex items-center rounded-lg border p-4 cursor-grab active:cursor-grabbing transition-colors",
+              hasSubmitted && question.correctOrder.indexOf(item.id) === items.indexOf(item) && "border-green-500 bg-green-50",
+              hasSubmitted && question.correctOrder.indexOf(item.id) !== items.indexOf(item) && "border-red-500 bg-red-50",
+              !hasSubmitted && "hover:bg-muted"
+            )}
+          >
+            <GripVertical className="mr-3 h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <span className="flex-1">{item.text}</span>
+            {hasSubmitted && question.correctOrder.indexOf(item.id) === items.indexOf(item) && (
+              <Check className="h-5 w-5 text-green-500 ml-2" />
+            )}
+            {hasSubmitted && question.correctOrder.indexOf(item.id) !== items.indexOf(item) && (
+              <X className="h-5 w-5 text-red-500 ml-2" />
+            )}
           </div>
         ))}
       </div>
 
       {hasSubmitted ? (
-        <div className="flex flex-col space-y-4">
-          <div className={cn(
-            "p-3 rounded-lg",
-            isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          )}>
-            <p className="font-medium">
-              {isCorrect ? "Correct! All items are in the right categories. 🎉" : "Some items are in the wrong categories. Try again."}
-            </p>
-          </div>
-          {!isCorrect && (
-            <Button onClick={resetQuiz} variant="outline">
-              Reset and Try Again
-            </Button>
+        <div className={cn(
+          "mt-4 p-3 rounded-lg",
+          isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+        )}>
+          <p className="font-medium">
+            {isCorrect ? "Correct! 🎉" : "Incorrect. Try again."}
+          </p>
+          {question.explanation && (
+            <p className="mt-1 text-sm">{question.explanation}</p>
           )}
         </div>
       ) : (
         <Button 
           onClick={handleSubmit} 
-          className="mt-4" 
-          disabled={remainingItems.length > 0}
+          className="mt-4"
         >
           Submit Answer
         </Button>
