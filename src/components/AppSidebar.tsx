@@ -1,104 +1,78 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, Book, BarChart, Trophy, 
-  Settings, LogOut, Map,
-  Users, HelpCircle, GraduationCap
-} from 'lucide-react';
 
-interface AppSidebarProps {
-  isCollapsed: boolean;
-}
+import { Home, Book, Trophy, BarChart3, Settings, LogOut } from 'lucide-react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Link } from 'react-router-dom';
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ isCollapsed }) => {
-  const location = useLocation();
-  
-  const navItems = [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />
-    },
-    {
-      title: "Learning Modules",
-      href: "/modules",
-      icon: <Book className="h-5 w-5" />
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: <BarChart className="h-5 w-5" />
-    },
-    {
-      title: "Leaderboard",
-      href: "/leaderboard",
-      icon: <Trophy className="h-5 w-5" />
-    },
-    {
-      title: "Roadmap",
-      href: "/roadmap",
-      icon: <Map className="h-5 w-5" />
-    }
+export function AppSidebar() {
+  const menuItems = [
+    { icon: Home, label: 'Dashboard', path: '/' },
+    { icon: Book, label: 'Modules', path: '/modules' },
+    { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
-  
+
   return (
-    <div 
-      className={cn(
-        "flex flex-col h-full bg-gray-50 border-r py-4",
-        isCollapsed ? "w-20" : "w-60"
-      )}
-    >
-      <div className="space-y-3">
-        <div className="px-3 py-2">
-          <Link to="/" className="font-bold text-sm group flex items-center text-muted-foreground">
-            <GraduationCap className="h-5 w-5 mr-2" />
-            <span className={cn("truncate", isCollapsed && "hidden")}>
-              E-Learning Platform
-            </span>
-          </Link>
+    <Sidebar>
+      <SidebarHeader className="p-4 flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-full bg-elearn-blue flex items-center justify-center text-white font-semibold">
+            ML
+          </div>
+          <span className="font-bold text-lg">MicroLearn</span>
         </div>
-        <div className="space-y-1">
-          {navItems.map((item) => (
-            <Link 
-              key={item.href} 
-              to={item.href}
-              className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium hover:bg-gray-100 rounded-md transition-all text-muted-foreground",
-                location.pathname === item.href && "bg-gray-100 text-secondary"
-              )}
-            >
-              <div className="mr-2 shrink-0">{item.icon}</div>
-              <span className={cn("truncate", isCollapsed && "hidden")}>
-                {item.title}
-              </span>
-            </Link>
-          ))}
+        <SidebarTrigger />
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <div className="py-4">
+          <div className="px-4 mb-4 text-center">
+            <Avatar className="h-16 w-16 mx-auto mb-2">
+              <AvatarImage src="" />
+              <AvatarFallback className="bg-elearn-blue text-white">JD</AvatarFallback>
+            </Avatar>
+            <div className="font-medium">John Doe</div>
+            <div className="text-xs text-muted-foreground">Team Lead</div>
+          </div>
+          
+          <div className="px-3 py-2">
+            <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
+              MAIN MENU
+            </div>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.label}>
+                  <SidebarMenuButton asChild>
+                    <Link to={item.path} className="flex items-center space-x-3">
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </div>
         </div>
-      </div>
-      <div className="mt-auto px-3 py-2">
-        <div className="text-sm text-muted-foreground">
-          Need help?
-          <Link to="/help" className="block hover:underline">
-            <HelpCircle className="h-4 w-4 inline mr-1" />
-            <span className={cn("truncate", isCollapsed && "hidden")}>
-              Help & Support
-            </span>
-          </Link>
-          <Link to="/settings" className="block hover:underline">
-            <Settings className="h-4 w-4 inline mr-1" />
-            <span className={cn("truncate", isCollapsed && "hidden")}>
-              Settings
-            </span>
-          </Link>
-          <Link to="/logout" className="block hover:underline">
-            <LogOut className="h-4 w-4 inline mr-1" />
-            <span className={cn("truncate", isCollapsed && "hidden")}>
-              Logout
-            </span>
-          </Link>
+      </SidebarContent>
+      
+      <SidebarFooter>
+        <div className="px-3 py-4">
+          <button className="w-full flex items-center space-x-3 text-sm px-4 py-2 rounded-md hover:bg-muted transition-colors">
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
         </div>
-      </div>
-    </div>
+      </SidebarFooter>
+    </Sidebar>
   );
-};
+}

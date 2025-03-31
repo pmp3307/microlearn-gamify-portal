@@ -1,71 +1,35 @@
 
-import React from 'react';
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Outlet
-} from "react-router-dom";
-import Index from './pages/Index';
-import Dashboard from './pages/Dashboard';
-import ModulesList from './pages/ModulesList';
-import ModuleDetail from './pages/ModuleDetail';
-import Analytics from './pages/Analytics';
-import Leaderboard from './pages/Leaderboard';
-import NotFound from './pages/NotFound';
-import Roadmap from './pages/Roadmap';
-import { MainLayout } from './components/layouts/MainLayout';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import ModulesList from "./pages/ModulesList";
+import ModuleDetail from "./pages/ModuleDetail";
+import Leaderboard from "./pages/Leaderboard";
+import Analytics from "./pages/Analytics";
+import NotFound from "./pages/NotFound";
 
-// Root component that applies the layout
-const Root = () => {
-  return (
-    <MainLayout>
-      <Outlet />
-    </MainLayout>
-  );
-};
+const queryClient = new QueryClient();
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Root />,
-    errorElement: <NotFound />,
-    children: [
-      {
-        index: true,
-        element: <Index />
-      },
-      {
-        path: "dashboard",
-        element: <Dashboard />
-      },
-      {
-        path: "modules",
-        element: <ModulesList />
-      },
-      {
-        path: "modules/:moduleId",
-        element: <ModuleDetail />
-      },
-      {
-        path: "analytics",
-        element: <Analytics />
-      },
-      {
-        path: "leaderboard",
-        element: <Leaderboard />
-      },
-      {
-        path: "roadmap",
-        element: <Roadmap />
-      }
-    ]
-  }
-]);
-
-function App() {
-  return (
-    <RouterProvider router={router} />
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/modules" element={<ModulesList />} />
+          <Route path="/modules/:moduleId" element={<ModuleDetail />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
