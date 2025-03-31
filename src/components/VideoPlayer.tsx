@@ -1,8 +1,7 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, 
-  ChevronUp, Heart, Lightbulb, Flag 
+  ChevronUp, Heart, MessageSquare, Share2, Music 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -12,24 +11,44 @@ interface VideoPlayerProps {
   videoUrl?: string;
   showReactions?: boolean;
   onComplete?: () => void;
+  username?: string;
+  description?: string;
+  songTitle?: string;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ 
   videoUrl = 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', 
   showReactions = true,
-  onComplete 
+  onComplete,
+  username = '@username',
+  description = 'This is a sample video description',
+  songTitle = 'Original Sound - Artist'
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // TikTok videos are muted by default
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(1);
+  const [liked, setLiked] = useState(false);
   const { toast } = useToast();
 
   // Hide controls timeout
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Set video to muted by default (TikTok style)
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+    }
+    
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const resetControlsTimeout = () => {
     if (controlsTimeoutRef.current) {
@@ -49,7 +68,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
 
     if (video.paused) {
-      video.play();
+      video.play().catch(e => console.error("Video play failed:", e));
       setIsPlaying(true);
       resetControlsTimeout();
     } else {
@@ -83,6 +102,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
+      videoRef.current.muted = newVolume === 0;
       setIsMuted(newVolume === 0);
     }
   };
@@ -91,17 +111,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    if (isMuted) {
-      video.muted = false;
-      setIsMuted(false);
-      // Restore previous volume if it was 0
-      if (volume === 0) {
-        setVolume(1);
-        video.volume = 1;
-      }
-    } else {
-      video.muted = true;
-      setIsMuted(true);
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+    
+    // If unmuting and volume was 0, set to default volume
+    if (!video.muted && volume === 0) {
+      setVolume(1);
+      video.volume = 1;
     }
   };
 
@@ -112,7 +128,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
-      videoContainer.requestFullscreen();
+      videoContainer.requestFullscreen().catch(e => console.error("Fullscreen error:", e));
     }
   };
 
@@ -133,34 +149,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   // Handle reactions
-  const handleReaction = (reaction: 'love' | 'insight' | 'flag') => {
+  const handleReaction = (reaction: 'like' | 'comment' | 'share') => {
     let message = '';
     let icon = '';
     
     switch(reaction) {
-      case 'love':
-        message = 'You loved this content!';
+      case 'like':
+        setLiked(!liked);
+        message = liked ? 'Removed like' : 'You liked this video!';
         icon = '❤️';
+        return;
+      case 'comment':
+        message = 'Comment feature would open here';
+        icon = '💬';
         break;
-      case 'insight':
-        message = 'This gave you an insight!';
-        icon = '💡';
-        break;
-      case 'flag':
-        message = 'Content flagged for review.';
-        icon = '🚩';
+      case 'share':
+        message = 'Share options would appear here';
+        icon = '↗️';
         break;
     }
     
     toast({
-      title: `${icon} Reaction recorded`,
-      description: message,
+      title: `${icon} ${message}`,
     });
   };
 
   return (
     <div 
-      className="video-container" 
+      className="relative w-full h-full bg-black rounded-lg overflow-hidden aspect-[9/16] max-h-[90vh] mx-auto"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => {
         if (isPlaying) {
@@ -170,8 +186,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     >
       <video
         ref={videoRef}
-        className="w-full h-full"
+        className="absolute inset-0 w-full h-full object-cover"
         src={videoUrl}
+        loop // TikTok videos loop by default
+        playsInline // Important for mobile browsers
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={() => setIsPlaying(false)}
@@ -180,7 +198,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       
       {/* Play/Pause central overlay */}
       {!isPlaying && (
-        <div className="video-overlay">
+        <div className="absolute inset-0 flex items-center justify-center">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -232,51 +250,64 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </span>
           </div>
           
-          <div className="flex items-center space-x-2">
-            {showReactions && (
-              <div className="flex space-x-1 mr-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="reaction-button" 
-                  onClick={() => handleReaction('love')}
-                >
-                  <Heart className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="reaction-button" 
-                  onClick={() => handleReaction('insight')}
-                >
-                  <Lightbulb className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="reaction-button" 
-                  onClick={() => handleReaction('flag')}
-                >
-                  <Flag className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            
-            <Button variant="ghost" size="icon" className="text-white" onClick={handleFullScreen}>
-              <Maximize className="h-5 w-5" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" className="text-white" onClick={handleFullScreen}>
+            <Maximize className="h-5 w-5" />
+          </Button>
         </div>
       </div>
       
-      {/* Show more controls (if needed) */}
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="absolute top-2 right-2 text-white bg-black/30 hover:bg-black/50 rounded-full p-2 h-8 w-8"
-      >
-        <ChevronUp className="h-4 w-4" />
-      </Button>
+      {/* Right side action buttons (TikTok style) */}
+      <div className="absolute right-2 bottom-24 flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+            onClick={() => handleReaction('like')}
+          >
+            <Heart className={`h-6 w-6 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
+          </Button>
+          <span className="text-white text-xs mt-1">123K</span>
+        </div>
+        
+        <div className="flex flex-col items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+            onClick={() => handleReaction('comment')}
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+          <span className="text-white text-xs mt-1">5.2K</span>
+        </div>
+        
+        <div className="flex flex-col items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+            onClick={() => handleReaction('share')}
+          >
+            <Share2 className="h-6 w-6" />
+          </Button>
+          <span className="text-white text-xs mt-1">Share</span>
+        </div>
+        
+        <div className="rounded-full bg-white/10 w-12 h-12 flex items-center justify-center">
+          <Music className="h-6 w-6 text-white" />
+        </div>
+      </div>
+      
+      {/* Bottom user info (TikTok style) */}
+      <div className="absolute bottom-20 left-4 text-white">
+        <div className="font-bold text-lg">{username}</div>
+        <div className="text-sm mb-2">{description}</div>
+        <div className="flex items-center">
+          <Music className="h-4 w-4 mr-1" />
+          <span className="text-xs">{songTitle}</span>
+        </div>
+      </div>
     </div>
   );
 };
