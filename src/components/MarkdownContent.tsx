@@ -32,16 +32,28 @@ export const MarkdownContent: React.FC<MarkdownContentProps> = ({
         }
       }
       
-      // Check if this is a list
+      // Check if this is a list (ordered or unordered)
       if (paragraph.match(/^(\d+\.|-)/) || paragraph.match(/^\s+\*/)) {
         return (
           <ul key={i} className="list-disc pl-6 space-y-2 my-4">
             {paragraph.split('\n').map((item, j) => {
+              // Remove leading dash or number with dot
+              const cleanItem = item.replace(/^(\d+\.|-)\s*/, '');
               // Replace markdown bold with HTML bold
-              const formattedItem = item.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+              const formattedItem = cleanItem.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
               return <li key={j} dangerouslySetInnerHTML={{ __html: formattedItem }} />;
             })}
           </ul>
+        );
+      }
+      
+      // Check if this is a code block
+      if (paragraph.startsWith('```') && paragraph.endsWith('```')) {
+        const code = paragraph.substring(3, paragraph.length - 3).trim();
+        return (
+          <pre key={i} className="bg-gray-100 p-4 rounded-md my-4 overflow-x-auto">
+            <code>{code}</code>
+          </pre>
         );
       }
       
