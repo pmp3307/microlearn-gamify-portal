@@ -33,9 +33,13 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
       )}>
         <div className="relative h-48 overflow-hidden">
           <img 
-            src={module.imageUrl || '/placeholder.svg'} 
+            src={module.imageUrl} 
             alt={module.title} 
             className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = '/placeholder.svg';
+            }}
           />
           
           {completed && (
@@ -52,8 +56,11 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
                 <span>Progress</span>
                 <span>{progress}%</span>
               </div>
-              <div className="progress-indicator">
-                <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+              <div className="w-full h-1 bg-gray-300 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 rounded-full" 
+                  style={{ width: `${progress}%` }}
+                ></div>
               </div>
             </div>
           )}

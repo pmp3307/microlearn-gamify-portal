@@ -137,7 +137,7 @@ const ModuleDetail = () => {
         </div>
         
         {/* Section Navigation */}
-        <div className="flex border rounded-md overflow-hidden mb-6">
+        <div className="flex border rounded-md overflow-hidden mb-6 overflow-x-auto">
           {module.sections.map((section, index) => (
             <button
               key={section.id}
@@ -145,7 +145,7 @@ const ModuleDetail = () => {
                 setCurrentSectionIndex(index);
                 setShowQuiz(false);
               }}
-              className={`flex-1 py-2 px-4 text-sm border-r last:border-r-0 whitespace-nowrap overflow-hidden text-ellipsis ${
+              className={`flex-1 py-2 px-4 text-sm border-r last:border-r-0 whitespace-nowrap ${
                 index === currentSectionIndex 
                   ? 'bg-elearn-blue text-white' 
                   : sectionProgress[section.id]
@@ -186,9 +186,44 @@ const ModuleDetail = () => {
             <div className="prose max-w-none">
               <h2 className="text-2xl font-bold mb-4">{currentSection.title}</h2>
               <div className="space-y-4">
-                {currentSection.content.split('\n').map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
-                ))}
+                {currentSection.content.split('\n\n').map((paragraph, i) => {
+                  // Check if this is a header (starts with #)
+                  if (paragraph.startsWith('#')) {
+                    const headerMatch = paragraph.match(/^(#+)\s+(.+)$/);
+                    if (headerMatch) {
+                      const level = headerMatch[1].length; // Number of # symbols
+                      const content = headerMatch[2];
+                      
+                      switch (level) {
+                        case 1:
+                          return <h1 key={i} className="text-3xl font-bold mt-6 mb-3">{content}</h1>;
+                        case 2:
+                          return <h2 key={i} className="text-2xl font-bold mt-5 mb-3">{content}</h2>;
+                        case 3:
+                          return <h3 key={i} className="text-xl font-bold mt-4 mb-2">{content}</h3>;
+                        default:
+                          return <h4 key={i} className="text-lg font-bold mt-3 mb-2">{content}</h4>;
+                      }
+                    }
+                  }
+                  
+                  // Check if this is a list item
+                  if (paragraph.match(/^(\d+\.|-)/) || paragraph.startsWith('  ')) {
+                    return (
+                      <ul key={i} className="list-disc pl-6 space-y-2">
+                        {paragraph.split('\n').map((item, j) => {
+                          // Replace markdown bold with HTML bold
+                          const formattedItem = item.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                          return <li key={j} dangerouslySetInnerHTML={{ __html: formattedItem }} />;
+                        })}
+                      </ul>
+                    );
+                  }
+                  
+                  // Regular paragraph with bold text support
+                  const formattedParagraph = paragraph.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                  return <p key={i} dangerouslySetInnerHTML={{ __html: formattedParagraph }} />;
+                })}
               </div>
             </div>
           </TabsContent>
