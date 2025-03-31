@@ -9,6 +9,8 @@ import ModulesList from "./pages/ModulesList";
 import ModuleDetail from "./pages/ModuleDetail";
 import Leaderboard from "./pages/Leaderboard";
 import Analytics from "./pages/Analytics";
+import Roadmap from "./pages/Roadmap";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/modules/:moduleId" element={<ModuleDetail />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/roadmap" element={<Roadmap />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
