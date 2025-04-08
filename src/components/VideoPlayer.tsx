@@ -25,7 +25,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   description = 'This is a sample video description',
   songTitle = 'Original Sound - Artist'
 }) => {
-  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  // Fixed: Using separate refs for video and audio, not switching them conditionally
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -68,13 +68,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   useEffect(() => {
     // Reset state when URL changes
-    if (videoRef.current) {
-      videoRef.current.muted = true;
-    }
-    if (audioRef.current) {
-      audioRef.current.muted = true;
-    }
-    
     setIsError(false);
     setIsPlaying(false);
     setCurrentTime(0);
@@ -86,12 +79,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setLoadingMessage("Loading ElevenLabs audio...");
     }
     
-    // Set the current media reference
-    mediaRef.current = isAudioOnly ? audioRef.current : videoRef.current;
-    
-    // Load the media
-    if (mediaRef.current) {
-      mediaRef.current.load();
+    // Fixed: Not setting mediaRef conditionally
+    if (isAudioOnly) {
+      if (audioRef.current) {
+        audioRef.current.muted = true;
+        audioRef.current.load();
+      }
+    } else {
+      if (videoRef.current) {
+        videoRef.current.muted = true;
+        videoRef.current.load();
+      }
     }
     
     return () => {
@@ -115,7 +113,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Media event handlers
   const handlePlayPause = () => {
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (!media) return;
 
     if (media.paused) {
@@ -138,7 +136,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleTimeUpdate = () => {
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (!media) return;
 
     setCurrentTime(media.currentTime);
@@ -150,7 +148,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleLoadedMetadata = () => {
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (!media) return;
     setDuration(media.duration);
     setIsError(false);
@@ -160,7 +158,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const newVolume = value[0];
     setVolume(newVolume);
     
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (media) {
       media.volume = newVolume;
       media.muted = newVolume === 0;
@@ -169,7 +167,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleMuteToggle = () => {
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (!media) return;
 
     media.muted = !media.muted;
@@ -183,7 +181,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleFullScreen = () => {
-    const container = mediaRef.current?.parentElement;
+    const container = videoRef.current?.parentElement;
     if (!container) return;
 
     if (document.fullscreenElement) {
@@ -194,7 +192,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleSeek = (value: number[]) => {
-    const media = mediaRef.current;
+    const media = isAudioOnly ? audioRef.current : videoRef.current;
     if (!media) return;
     
     const newTime = value[0];

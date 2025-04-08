@@ -135,7 +135,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
           <Input
             id="video-url"
             type="text"
-            placeholder="Enter video/audio URL (YouTube, Vimeo, ElevenLabs, etc.)"
+            placeholder="Enter video/audio URL (YouTube, Vimeo, ElevenLabs share, or direct link)"
             value={videoUrl}
             onChange={handleUrlChange}
             className="flex-1"
