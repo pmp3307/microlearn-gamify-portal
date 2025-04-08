@@ -5,7 +5,7 @@ import { VideoUploader } from './VideoUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Settings, Video } from 'lucide-react';
+import { Settings, PlayCircle } from 'lucide-react';
 
 interface VideoModuleProps {
   title?: string;
@@ -18,8 +18,8 @@ interface VideoModuleProps {
 }
 
 export const VideoModule: React.FC<VideoModuleProps> = ({
-  title = "Video Content",
-  description = "Watch and interact with video content",
+  title = "Media Content",
+  description = "Watch and interact with audio/video content",
   defaultVideoUrl = "",
   onVideoChange,
   allowUpload = true,
@@ -41,6 +41,15 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
     }
   };
 
+  // Determine if we're dealing with audio
+  const isAudioFile = (url: string) => {
+    const audioExtensions = ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg'];
+    return audioExtensions.some(ext => url.toLowerCase().endsWith(ext)) || 
+           url.includes('elevenlabs.io/app/share');
+  };
+
+  const mediaType = videoUrl ? (isAudioFile(videoUrl) ? "audio" : "video") : "media";
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -53,13 +62,13 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
           <div className="flex justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="player" className="flex items-center gap-2">
-                <Video className="h-4 w-4" />
+                <PlayCircle className="h-4 w-4" />
                 Player
               </TabsTrigger>
               {allowUpload && (
                 <TabsTrigger value="settings" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
-                  Video Source
+                  Media Source
                 </TabsTrigger>
               )}
             </TabsList>
@@ -70,7 +79,7 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
                 size="sm"
                 onClick={() => setActiveTab(activeTab === "player" ? "settings" : "player")}
               >
-                {activeTab === "player" ? "Change Video" : "Back to Player"}
+                {activeTab === "player" ? "Change Media" : "Back to Player"}
               </Button>
             )}
           </div>
@@ -86,13 +95,13 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
               </div>
             ) : (
               <div className="aspect-video bg-muted rounded-md flex items-center justify-center flex-col p-6">
-                <Video className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Video Selected</h3>
+                <PlayCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Media Selected</h3>
                 <p className="text-sm text-muted-foreground text-center mb-4">
-                  Select a video source to get started
+                  Select a video or audio source to get started
                 </p>
                 <Button onClick={() => setActiveTab("settings")}>
-                  Select Video
+                  Select Media
                 </Button>
               </div>
             )}

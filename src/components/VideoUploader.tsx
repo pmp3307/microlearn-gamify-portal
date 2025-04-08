@@ -27,7 +27,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
     if (!videoUrl) {
       toast({
         title: "URL Required",
-        description: "Please enter a valid video URL",
+        description: "Please enter a valid video or audio URL",
         variant: "destructive",
       });
       return;
@@ -37,28 +37,30 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
     if (videoUrl.includes('elevenlabs.io/app/share')) {
       onVideoSelected(videoUrl);
       toast({
-        title: "Video URL Added",
-        description: "ElevenLabs shared video has been set",
+        title: "Media URL Added",
+        description: "ElevenLabs shared content has been set",
       });
       return;
     }
 
-    // Check if the URL is valid and points to a video file
+    // Check if the URL is valid and points to a media file
     const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
+    const audioExtensions = ['.mp3', '.wav', '.m4a', '.aac'];
     const isVideoFile = videoExtensions.some(ext => videoUrl.toLowerCase().endsWith(ext));
+    const isAudioFile = audioExtensions.some(ext => videoUrl.toLowerCase().endsWith(ext));
     const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
     const isVimeo = videoUrl.includes('vimeo.com');
 
-    if (isVideoFile || isYouTube || isVimeo) {
+    if (isVideoFile || isAudioFile || isYouTube || isVimeo) {
       onVideoSelected(videoUrl);
       toast({
-        title: "Video URL Added",
-        description: "Video URL has been set successfully",
+        title: "Media URL Added",
+        description: "URL has been set successfully",
       });
     } else {
       toast({
-        title: "Invalid Video URL",
-        description: "Please enter a URL pointing to a video file or YouTube/Vimeo link",
+        title: "Invalid Media URL",
+        description: "Please enter a URL pointing to a video/audio file or YouTube/Vimeo link",
         variant: "destructive",
       });
     }
@@ -68,11 +70,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check if file is a video
-    if (!file.type.startsWith('video/')) {
+    // Check if file is a video or audio
+    if (!file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
       toast({
         title: "Invalid File Type",
-        description: "Please select a video file",
+        description: "Please select a video or audio file",
         variant: "destructive",
       });
       return;
@@ -128,12 +130,12 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="video-url">Video URL</Label>
+        <Label htmlFor="video-url">Media URL</Label>
         <div className="flex gap-2 mt-1.5">
           <Input
             id="video-url"
             type="text"
-            placeholder="Enter video URL (YouTube, Vimeo, or direct link)"
+            placeholder="Enter video/audio URL (YouTube, Vimeo, ElevenLabs, etc.)"
             value={videoUrl}
             onChange={handleUrlChange}
             className="flex-1"
@@ -144,7 +146,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
           </Button>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          Supports YouTube, Vimeo, ElevenLabs shares, and direct video links
+          Supports YouTube, Vimeo, ElevenLabs shares, and direct video/audio links
         </p>
       </div>
 
@@ -159,7 +161,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="video/*"
+          accept="video/*,audio/*"
           className="hidden"
         />
         
@@ -177,8 +179,8 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({ onVideoSelected, d
           ) : (
             <>
               <Upload className="h-6 w-6 mb-2" />
-              <span>Click to upload video</span>
-              <p className="text-xs text-muted-foreground">MP4, WebM, etc. (max 100MB)</p>
+              <span>Click to upload video or audio</span>
+              <p className="text-xs text-muted-foreground">MP4, MP3, WebM, etc. (max 100MB)</p>
             </>
           )}
         </Button>

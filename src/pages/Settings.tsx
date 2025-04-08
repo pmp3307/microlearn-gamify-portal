@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { VideoModule } from '@/components/VideoModule';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const handleSave = () => {
@@ -35,7 +36,7 @@ const Settings = () => {
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
+            <TabsTrigger value="videos">Media</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="space-y-6">
@@ -240,22 +241,22 @@ const Settings = () => {
           <TabsContent value="videos" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Video Management</CardTitle>
+                <CardTitle>Media Management</CardTitle>
                 <CardDescription>
-                  Upload and manage your video content
+                  Upload and manage your video and audio content
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <VideoModule 
-                  title="Upload Video"
-                  description="Upload a video file or provide a video URL (YouTube, Vimeo, or ElevenLabs share)"
+                  title="Upload Media"
+                  description="Upload a video/audio file or provide a URL (YouTube, Vimeo, ElevenLabs share, or direct link)"
                   allowUpload={true}
                   showReactions={false}
                   onVideoChange={(url) => {
                     if (url) {
                       toast({
-                        title: "Video Added",
-                        description: "Your video has been added successfully"
+                        title: "Media Added",
+                        description: "Your media content has been added successfully"
                       });
                     }
                   }}

@@ -25,32 +25,73 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   description = 'This is a sample video description',
   songTitle = 'Original Sound - Artist'
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // TikTok videos are muted by default
+  const [isMuted, setIsMuted] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(1);
   const [liked, setLiked] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [isAudioOnly, setIsAudioOnly] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Loading media...");
   const { toast } = useToast();
 
-  // Handle ElevenLabs sharing URLs
-  const processedVideoUrl = videoUrl && videoUrl.includes('elevenlabs.io/app/share') 
-    ? `https://api.elevenlabs.io/v1/audio/${videoUrl.split('/').pop()}/stream?optimize_streaming_latency=3` 
-    : videoUrl;
+  // Process URL - handle ElevenLabs shares properly
+  const processMediaUrl = (url: string | undefined) => {
+    if (!url) return '';
+    
+    // Handle ElevenLabs share URL
+    if (url.includes('elevenlabs.io/app/share')) {
+      const shareId = url.split('/').pop();
+      if (!shareId) return '';
+      
+      setIsAudioOnly(true);
+      return `https://api.elevenlabs.io/v1/audio/${shareId}/stream?optimize_streaming_latency=3`;
+    }
+    
+    // Determine if this is an audio file
+    const audioExtensions = ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg'];
+    const isAudioFile = audioExtensions.some(ext => url.toLowerCase().endsWith(ext));
+    setIsAudioOnly(isAudioFile);
+    
+    return url;
+  };
+  
+  const processedVideoUrl = processMediaUrl(videoUrl);
 
   // Hide controls timeout
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Reset video state when URL changes
+    // Reset state when URL changes
     if (videoRef.current) {
       videoRef.current.muted = true;
-      setIsError(false);
-      setIsPlaying(false);
-      videoRef.current.load(); // Reload the video with new source
+    }
+    if (audioRef.current) {
+      audioRef.current.muted = true;
+    }
+    
+    setIsError(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setLoadingMessage("Loading media...");
+    
+    // For ElevenLabs URLs, show specific loading message
+    if (videoUrl && videoUrl.includes('elevenlabs.io/app/share')) {
+      setLoadingMessage("Loading ElevenLabs audio...");
+    }
+    
+    // Set the current media reference
+    mediaRef.current = isAudioOnly ? audioRef.current : videoRef.current;
+    
+    // Load the media
+    if (mediaRef.current) {
+      mediaRef.current.load();
     }
     
     return () => {
@@ -58,7 +99,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [videoUrl]);
+  }, [videoUrl, isAudioOnly]);
 
   const resetControlsTimeout = () => {
     if (controlsTimeoutRef.current) {
@@ -66,52 +107,52 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
     setShowControls(true);
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
+      if (isPlaying && !isAudioOnly) {
         setShowControls(false);
       }
     }, 3000);
   };
 
-  // Video event handlers
+  // Media event handlers
   const handlePlayPause = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const media = mediaRef.current;
+    if (!media) return;
 
-    if (video.paused) {
-      video.play().catch(e => {
-        console.error("Video play failed:", e);
+    if (media.paused) {
+      media.play().catch(e => {
+        console.error("Media play failed:", e);
         setIsError(true);
         toast({
-          title: "Video Error",
-          description: "There was a problem playing this video. Please check the URL or file.",
+          title: "Media Error",
+          description: "There was a problem playing this content. Please check the URL or file format.",
           variant: "destructive",
         });
       });
       setIsPlaying(true);
       resetControlsTimeout();
     } else {
-      video.pause();
+      media.pause();
       setIsPlaying(false);
       setShowControls(true);
     }
   };
 
   const handleTimeUpdate = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const media = mediaRef.current;
+    if (!media) return;
 
-    setCurrentTime(video.currentTime);
+    setCurrentTime(media.currentTime);
     
-    // Check if video is complete (with a small buffer)
-    if (video.currentTime >= video.duration - 0.5 && onComplete) {
+    // Check if playback is complete (with a small buffer)
+    if (media.currentTime >= media.duration - 0.5 && onComplete) {
       onComplete();
     }
   };
 
   const handleLoadedMetadata = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    setDuration(video.duration);
+    const media = mediaRef.current;
+    if (!media) return;
+    setDuration(media.duration);
     setIsError(false);
   };
 
@@ -119,54 +160,66 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const newVolume = value[0];
     setVolume(newVolume);
     
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-      videoRef.current.muted = newVolume === 0;
+    const media = mediaRef.current;
+    if (media) {
+      media.volume = newVolume;
+      media.muted = newVolume === 0;
       setIsMuted(newVolume === 0);
     }
   };
 
   const handleMuteToggle = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const media = mediaRef.current;
+    if (!media) return;
 
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
+    media.muted = !media.muted;
+    setIsMuted(media.muted);
     
     // If unmuting and volume was 0, set to default volume
-    if (!video.muted && volume === 0) {
+    if (!media.muted && volume === 0) {
       setVolume(1);
-      video.volume = 1;
+      media.volume = 1;
     }
   };
 
   const handleFullScreen = () => {
-    const videoContainer = videoRef.current?.parentElement;
-    if (!videoContainer) return;
+    const container = mediaRef.current?.parentElement;
+    if (!container) return;
 
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
-      videoContainer.requestFullscreen().catch(e => console.error("Fullscreen error:", e));
+      container.requestFullscreen().catch(e => console.error("Fullscreen error:", e));
     }
   };
 
   const handleSeek = (value: number[]) => {
-    const video = videoRef.current;
-    if (!video) return;
+    const media = mediaRef.current;
+    if (!media) return;
     
     const newTime = value[0];
-    video.currentTime = newTime;
+    media.currentTime = newTime;
     setCurrentTime(newTime);
   };
 
-  const handleVideoError = () => {
+  const handleMediaError = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement, Event>) => {
+    console.error("Media error:", e);
     setIsError(true);
-    toast({
-      title: "Video Error",
-      description: "There was a problem loading this video. Please check the URL or file.",
-      variant: "destructive",
-    });
+    
+    // Check if this is an ElevenLabs URL to provide a specific message
+    if (videoUrl && videoUrl.includes('elevenlabs.io/app/share')) {
+      toast({
+        title: "ElevenLabs Error",
+        description: "There was a problem loading the ElevenLabs audio. The share link might have expired or be invalid.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Media Error",
+        description: "There was a problem loading this media. Please check the URL or file format.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Format time display
@@ -184,7 +237,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     switch(reaction) {
       case 'like':
         setLiked(!liked);
-        message = liked ? 'Removed like' : 'You liked this video!';
+        message = liked ? 'Removed like' : 'You liked this content!';
         icon = '❤️';
         return;
       case 'comment':
@@ -202,20 +255,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     });
   };
 
+  // Audio-only visualization component
+  const AudioVisualizer = () => (
+    <div className="flex items-center justify-center h-full w-full bg-gradient-to-r from-blue-900 to-purple-900">
+      <div className="p-8 rounded-full bg-black/30 flex items-center justify-center">
+        <Music className="h-24 w-24 text-white" />
+      </div>
+    </div>
+  );
+
   return (
     <div 
       className="relative w-full h-full bg-black rounded-lg overflow-hidden aspect-[9/16] max-h-[90vh] mx-auto"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => {
-        if (isPlaying) {
+        if (isPlaying && !isAudioOnly) {
           setShowControls(false);
         }
       }}
     >
       {isError ? (
         <div className="absolute inset-0 flex items-center justify-center text-white flex-col">
-          <p className="text-lg mb-4">Video could not be loaded</p>
-          <p className="text-sm text-gray-300 mb-4">Please check the URL or try another video</p>
+          <p className="text-lg mb-4">Media could not be loaded</p>
+          <p className="text-sm text-gray-300 mb-4">Please check the URL or try another file</p>
           <Button 
             variant="outline" 
             onClick={() => setIsError(false)}
@@ -225,22 +287,51 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </Button>
         </div>
       ) : (
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-contain bg-black"
-          src={processedVideoUrl}
-          loop // TikTok videos loop by default
-          playsInline // Important for mobile browsers
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
-          onClick={handlePlayPause}
-          onError={handleVideoError}
-        />
+        <>
+          {isAudioOnly ? (
+            <>
+              <AudioVisualizer />
+              <audio
+                ref={audioRef}
+                src={processedVideoUrl}
+                loop
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={() => setIsPlaying(false)}
+                onError={handleMediaError}
+                onCanPlayThrough={() => console.log("Audio can play through")}
+                style={{ display: 'none' }}
+              />
+            </>
+          ) : (
+            <video
+              ref={videoRef}
+              className="absolute inset-0 w-full h-full object-contain bg-black"
+              src={processedVideoUrl}
+              loop
+              playsInline
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={() => setIsPlaying(false)}
+              onClick={handlePlayPause}
+              onError={handleMediaError}
+            />
+          )}
+        </>
+      )}
+      
+      {/* Loading indicator */}
+      {!isError && !duration && processedVideoUrl && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+            <p>{loadingMessage}</p>
+          </div>
+        </div>
       )}
       
       {/* Play/Pause central overlay */}
-      {!isPlaying && !isError && (
+      {!isPlaying && !isError && duration > 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Button 
             variant="ghost" 
@@ -253,19 +344,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
       
-      {/* Video controls */}
+      {/* Media controls */}
       <div 
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 transition-opacity duration-300 ${showControls || isAudioOnly ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Progress bar */}
-        <Slider
-          value={[currentTime]}
-          min={0}
-          max={duration || 100}
-          step={0.1}
-          onValueChange={handleSeek}
-          className="mb-2"
-        />
+        {duration > 0 && (
+          <Slider
+            value={[currentTime]}
+            min={0}
+            max={duration || 100}
+            step={0.1}
+            onValueChange={handleSeek}
+            className="mb-2"
+          />
+        )}
         
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -288,14 +381,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               />
             </div>
             
-            <span className="text-white text-sm">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+            {duration > 0 && (
+              <span className="text-white text-sm">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            )}
           </div>
           
-          <Button variant="ghost" size="icon" className="text-white" onClick={handleFullScreen}>
-            <Maximize className="h-5 w-5" />
-          </Button>
+          {!isAudioOnly && (
+            <Button variant="ghost" size="icon" className="text-white" onClick={handleFullScreen}>
+              <Maximize className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
       
