@@ -25,7 +25,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   description = 'This is a sample video description',
   songTitle = 'Original Sound - Artist'
 }) => {
-  // Fixed: Using separate refs for video and audio, not switching them conditionally
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -39,6 +38,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isAudioOnly, setIsAudioOnly] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("Loading media...");
   const { toast } = useToast();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const processedUrlRef = useRef<string>('');
 
   // Process URL - handle ElevenLabs shares properly
   const processMediaUrl = (url: string | undefined) => {
@@ -61,12 +62,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return url;
   };
   
-  const processedVideoUrl = processMediaUrl(videoUrl);
-
-  // Hide controls timeout
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  // Use useEffect to process URL to avoid state updates during render
   useEffect(() => {
+    const processed = processMediaUrl(videoUrl);
+    processedUrlRef.current = processed;
+    
     // Reset state when URL changes
     setIsError(false);
     setIsPlaying(false);
@@ -79,7 +79,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setLoadingMessage("Loading ElevenLabs audio...");
     }
     
-    // Fixed: Not setting mediaRef conditionally
+    // Return cleanup function
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [videoUrl]);
+
+  // Separate effect for loading media to avoid render loops
+  useEffect(() => {
     if (isAudioOnly) {
       if (audioRef.current) {
         audioRef.current.muted = true;
@@ -91,13 +100,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         videoRef.current.load();
       }
     }
-    
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, [videoUrl, isAudioOnly]);
+  }, [isAudioOnly, processedUrlRef.current]);
 
   const resetControlsTimeout = () => {
     if (controlsTimeoutRef.current) {
@@ -291,7 +294,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <AudioVisualizer />
               <audio
                 ref={audioRef}
-                src={processedVideoUrl}
+                src={processedUrlRef.current}
                 loop
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
@@ -305,7 +308,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <video
               ref={videoRef}
               className="absolute inset-0 w-full h-full object-contain bg-black"
-              src={processedVideoUrl}
+              src={processedUrlRef.current}
               loop
               playsInline
               onTimeUpdate={handleTimeUpdate}
@@ -319,7 +322,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
       
       {/* Loading indicator */}
-      {!isError && !duration && processedVideoUrl && (
+      {!isError && !duration && processedUrlRef.current && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-white text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
