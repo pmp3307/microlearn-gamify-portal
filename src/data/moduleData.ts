@@ -171,7 +171,7 @@ As a manager, your first step in conflict resolution is accurately identifying t
       },
       {
         id: 'section2',
-        title: 'Rumour Management',
+        title: 'Rumor Management',
         content: `Workplace gossip and rumors can quickly undermine team cohesion and create a toxic environment. As a manager, addressing rumors requires tact, confidentiality, and a systematic approach:
 
 **Understanding the Impact of Rumors:**

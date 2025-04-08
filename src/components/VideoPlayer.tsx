@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, 
@@ -32,15 +33,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [volume, setVolume] = useState(1);
   const [liked, setLiked] = useState(false);
+  const [isError, setIsError] = useState(false);
   const { toast } = useToast();
+
+  // Handle ElevenLabs sharing URLs
+  const processedVideoUrl = videoUrl && videoUrl.includes('elevenlabs.io/app/share') 
+    ? `https://api.elevenlabs.io/v1/audio/${videoUrl.split('/').pop()}/stream?optimize_streaming_latency=3` 
+    : videoUrl;
 
   // Hide controls timeout
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Set video to muted by default (TikTok style)
+    // Reset video state when URL changes
     if (videoRef.current) {
       videoRef.current.muted = true;
+      setIsError(false);
+      setIsPlaying(false);
+      videoRef.current.load(); // Reload the video with new source
     }
     
     return () => {
@@ -48,7 +58,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, []);
+  }, [videoUrl]);
 
   const resetControlsTimeout = () => {
     if (controlsTimeoutRef.current) {
@@ -68,7 +78,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
 
     if (video.paused) {
-      video.play().catch(e => console.error("Video play failed:", e));
+      video.play().catch(e => {
+        console.error("Video play failed:", e);
+        setIsError(true);
+        toast({
+          title: "Video Error",
+          description: "There was a problem playing this video. Please check the URL or file.",
+          variant: "destructive",
+        });
+      });
       setIsPlaying(true);
       resetControlsTimeout();
     } else {
@@ -94,6 +112,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
     setDuration(video.duration);
+    setIsError(false);
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -141,6 +160,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setCurrentTime(newTime);
   };
 
+  const handleVideoError = () => {
+    setIsError(true);
+    toast({
+      title: "Video Error",
+      description: "There was a problem loading this video. Please check the URL or file.",
+      variant: "destructive",
+    });
+  };
+
   // Format time display
   const formatTime = (timeInSeconds: number) => {
     const minutes = Math.floor(timeInSeconds / 60);
@@ -184,20 +212,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }}
     >
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover"
-        src={videoUrl}
-        loop // TikTok videos loop by default
-        playsInline // Important for mobile browsers
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={() => setIsPlaying(false)}
-        onClick={handlePlayPause}
-      />
+      {isError ? (
+        <div className="absolute inset-0 flex items-center justify-center text-white flex-col">
+          <p className="text-lg mb-4">Video could not be loaded</p>
+          <p className="text-sm text-gray-300 mb-4">Please check the URL or try another video</p>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsError(false)}
+            className="text-white border-white hover:bg-white/20"
+          >
+            Try Again
+          </Button>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-contain bg-black"
+          src={processedVideoUrl}
+          loop // TikTok videos loop by default
+          playsInline // Important for mobile browsers
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+          onClick={handlePlayPause}
+          onError={handleVideoError}
+        />
+      )}
       
       {/* Play/Pause central overlay */}
-      {!isPlaying && (
+      {!isPlaying && !isError && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Button 
             variant="ghost" 
@@ -257,57 +300,61 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
       
       {/* Right side action buttons (TikTok style) */}
-      <div className="absolute right-2 bottom-24 flex flex-col items-center space-y-4">
-        <div className="flex flex-col items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
-            onClick={() => handleReaction('like')}
-          >
-            <Heart className={`h-6 w-6 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
-          </Button>
-          <span className="text-white text-xs mt-1">123K</span>
+      {showReactions && (
+        <div className="absolute right-2 bottom-24 flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+              onClick={() => handleReaction('like')}
+            >
+              <Heart className={`h-6 w-6 ${liked ? 'fill-red-500 text-red-500' : ''}`} />
+            </Button>
+            <span className="text-white text-xs mt-1">123K</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+              onClick={() => handleReaction('comment')}
+            >
+              <MessageSquare className="h-6 w-6" />
+            </Button>
+            <span className="text-white text-xs mt-1">5.2K</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
+              onClick={() => handleReaction('share')}
+            >
+              <Share2 className="h-6 w-6" />
+            </Button>
+            <span className="text-white text-xs mt-1">Share</span>
+          </div>
+          
+          <div className="rounded-full bg-white/10 w-12 h-12 flex items-center justify-center">
+            <Music className="h-6 w-6 text-white" />
+          </div>
         </div>
-        
-        <div className="flex flex-col items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
-            onClick={() => handleReaction('comment')}
-          >
-            <MessageSquare className="h-6 w-6" />
-          </Button>
-          <span className="text-white text-xs mt-1">5.2K</span>
-        </div>
-        
-        <div className="flex flex-col items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-12 w-12 rounded-full bg-transparent hover:bg-white/10 text-white"
-            onClick={() => handleReaction('share')}
-          >
-            <Share2 className="h-6 w-6" />
-          </Button>
-          <span className="text-white text-xs mt-1">Share</span>
-        </div>
-        
-        <div className="rounded-full bg-white/10 w-12 h-12 flex items-center justify-center">
-          <Music className="h-6 w-6 text-white" />
-        </div>
-      </div>
+      )}
       
       {/* Bottom user info (TikTok style) */}
-      <div className="absolute bottom-20 left-4 text-white">
-        <div className="font-bold text-lg">{username}</div>
-        <div className="text-sm mb-2">{description}</div>
-        <div className="flex items-center">
-          <Music className="h-4 w-4 mr-1" />
-          <span className="text-xs">{songTitle}</span>
+      {showReactions && (
+        <div className="absolute bottom-20 left-4 text-white">
+          <div className="font-bold text-lg">{username}</div>
+          <div className="text-sm mb-2">{description}</div>
+          <div className="flex items-center">
+            <Music className="h-4 w-4 mr-1" />
+            <span className="text-xs">{songTitle}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

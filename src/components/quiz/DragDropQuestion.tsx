@@ -48,16 +48,28 @@ export const DragDropQuiz: React.FC<DragDropProps> = ({ question, onAnswer }) =>
   };
 
   const handleSubmit = () => {
-    // Check if the current order matches the correct order
-    const isOrderCorrect = items.every((item, index) => 
-      item.id === question.correctOrder[index]
-    );
+    // For questions with categories, we compare item placement with expected categories
+    if (question.categories && question.categories.length > 0) {
+      // Handle category-based questions
+      const isOrderCorrect = items.every((item, index) => {
+        const expectedCategory = question.categories ? question.categories[index % question.categories.length] : '';
+        return item.category === expectedCategory;
+      });
+      
+      setIsCorrect(isOrderCorrect);
+      setHasSubmitted(true);
+      onAnswer(question.id, isOrderCorrect);
+    } else {
+      // For simple ordering questions, we just check the order against the first category
+      const expectedCategory = items[0]?.category || '';
+      const isOrderCorrect = items.every(item => item.category === expectedCategory);
+      
+      setIsCorrect(isOrderCorrect);
+      setHasSubmitted(true);
+      onAnswer(question.id, isOrderCorrect);
+    }
     
-    setIsCorrect(isOrderCorrect);
-    setHasSubmitted(true);
-    onAnswer(question.id, isOrderCorrect);
-    
-    if (isOrderCorrect) {
+    if (isCorrect) {
       toast({
         title: "Correct!",
         description: "You've placed the items in the right order.",
@@ -89,17 +101,17 @@ export const DragDropQuiz: React.FC<DragDropProps> = ({ question, onAnswer }) =>
             onDrop={(e) => handleDrop(e, item.id)}
             className={cn(
               "flex items-center rounded-lg border p-4 cursor-grab active:cursor-grabbing transition-colors",
-              hasSubmitted && question.correctOrder.indexOf(item.id) === items.indexOf(item) && "border-green-500 bg-green-50",
-              hasSubmitted && question.correctOrder.indexOf(item.id) !== items.indexOf(item) && "border-red-500 bg-red-50",
+              hasSubmitted && item.category === question.categories?.[0] && "border-green-500 bg-green-50",
+              hasSubmitted && item.category !== question.categories?.[0] && "border-red-500 bg-red-50",
               !hasSubmitted && "hover:bg-muted"
             )}
           >
             <GripVertical className="mr-3 h-5 w-5 text-muted-foreground flex-shrink-0" />
             <span className="flex-1">{item.text}</span>
-            {hasSubmitted && question.correctOrder.indexOf(item.id) === items.indexOf(item) && (
+            {hasSubmitted && item.category === question.categories?.[0] && (
               <Check className="h-5 w-5 text-green-500 ml-2" />
             )}
-            {hasSubmitted && question.correctOrder.indexOf(item.id) !== items.indexOf(item) && (
+            {hasSubmitted && item.category !== question.categories?.[0] && (
               <X className="h-5 w-5 text-red-500 ml-2" />
             )}
           </div>
