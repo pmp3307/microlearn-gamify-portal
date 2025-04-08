@@ -55,6 +55,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     handleSeek,
     handleMediaError,
     handleReaction,
+    setShowControls,
+    setIsPlaying
   } = useMediaPlayer({ onComplete, url: videoUrl });
   
   // Process URL and set up media when URL changes

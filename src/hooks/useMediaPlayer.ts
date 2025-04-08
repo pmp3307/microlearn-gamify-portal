@@ -201,5 +201,8 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
     handleSeek,
     handleMediaError,
     handleReaction,
+    // Export the setState functions explicitly
+    setShowControls,
+    setIsPlaying
   };
 };
