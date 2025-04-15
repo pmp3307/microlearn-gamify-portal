@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMediaPlayer } from '@/hooks/useMediaPlayer';
 import { processMediaUrl } from '@/utils/mediaUtils';
@@ -87,7 +87,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <div 
-      className="relative w-full h-full bg-black rounded-lg overflow-hidden aspect-[9/16] max-h-[90vh] mx-auto"
+      className="relative w-full h-full bg-black rounded-xl overflow-hidden aspect-[9/16] max-h-[90vh] mx-auto shadow-lg transition-all duration-300 hover:shadow-xl"
       onMouseMove={resetControlsTimeout}
       onMouseLeave={() => {
         if (isPlaying && !isAudioOnly) {
@@ -138,14 +138,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       
       {/* Play/Pause central overlay */}
       {!isPlaying && !isError && duration > 0 && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-20 w-20 rounded-full bg-black/30 hover:bg-black/50 text-white"
+            className="h-20 w-20 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white transition-all duration-300 transform hover:scale-110"
             onClick={handlePlayPause}
           >
-            <Play className="h-12 w-12" />
+            {isPlaying ? <Pause className="h-12 w-12" /> : <Play className="h-12 w-12 ml-1" />}
           </Button>
         </div>
       )}
@@ -166,12 +166,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onFullScreen={handleFullScreen}
       />
       
-      {/* Right side action buttons (TikTok style) */}
+      {/* Right side action buttons */}
       {showReactions && (
         <ReactionButtons liked={liked} onReaction={handleReaction} />
       )}
       
-      {/* Bottom user info (TikTok style) */}
+      {/* Bottom user info */}
       {showReactions && (
         <UserInfo
           username={username}

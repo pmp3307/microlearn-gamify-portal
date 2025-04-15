@@ -4,8 +4,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { MultipleChoiceQuestion } from '@/types/learning';
-import { Check, X } from 'lucide-react';
+import { Check, X, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface MultipleChoiceProps {
   question: MultipleChoiceQuestion;
@@ -29,8 +30,8 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceProps> = ({ question, on
   };
 
   return (
-    <div className="question-card animate-fade-in">
-      <h3 className="text-lg font-semibold mb-4">{question.questionText}</h3>
+    <div className="question-card">
+      <h3 className="text-lg font-medium text-slate-800 mb-4">{question.questionText}</h3>
       
       <RadioGroup 
         value={selectedChoice || ""} 
@@ -39,10 +40,14 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceProps> = ({ question, on
         disabled={hasSubmitted}
       >
         {question.choices.map((choice) => (
-          <div 
+          <motion.div 
             key={choice.id}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 * parseInt(choice.id) }}
             className={cn(
-              "flex items-center rounded-lg border p-4",
+              "flex items-center rounded-lg border p-4 transition-all duration-200 cursor-pointer",
+              !hasSubmitted && selectedChoice === choice.id ? "border-blue-400 bg-blue-50" : "hover:border-slate-300 hover:bg-slate-50",
               hasSubmitted && choice.isCorrect && "border-green-500 bg-green-50",
               hasSubmitted && selectedChoice === choice.id && !choice.isCorrect && "border-red-500 bg-red-50"
             )}
@@ -52,35 +57,66 @@ export const MultipleChoiceQuiz: React.FC<MultipleChoiceProps> = ({ question, on
               {choice.text}
             </Label>
             {hasSubmitted && choice.isCorrect && (
-              <Check className="h-5 w-5 text-green-500 ml-2" />
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
+              >
+                <Check className="h-5 w-5 text-green-500 ml-2" />
+              </motion.div>
             )}
             {hasSubmitted && selectedChoice === choice.id && !choice.isCorrect && (
-              <X className="h-5 w-5 text-red-500 ml-2" />
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 15 }}
+              >
+                <X className="h-5 w-5 text-red-500 ml-2" />
+              </motion.div>
             )}
-          </div>
+          </motion.div>
         ))}
       </RadioGroup>
 
       {hasSubmitted ? (
-        <div className={cn(
-          "mt-4 p-3 rounded-lg",
-          isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-        )}>
-          <p className="font-medium">
-            {isCorrect ? "Correct! 🎉" : "Incorrect. Try again."}
-          </p>
-          {question.explanation && (
-            <p className="mt-1 text-sm">{question.explanation}</p>
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className={cn(
+            "mt-4 p-4 rounded-lg",
+            isCorrect ? "bg-green-50 border border-green-100 text-green-800" : "bg-red-50 border border-red-100 text-red-800"
           )}
-        </div>
-      ) : (
-        <Button 
-          onClick={handleSubmit} 
-          className="mt-4" 
-          disabled={!selectedChoice}
         >
-          Submit Answer
-        </Button>
+          <div className="flex items-center">
+            {isCorrect ? (
+              <Check className="h-5 w-5 mr-2 text-green-500" />
+            ) : (
+              <X className="h-5 w-5 mr-2 text-red-500" />
+            )}
+            <p className="font-medium">
+              {isCorrect ? "Correct! 🎉" : "Incorrect. Try again."}
+            </p>
+          </div>
+          {question.explanation && (
+            <div className="mt-2 pl-7">
+              <p className="text-sm">{question.explanation}</p>
+            </div>
+          )}
+        </motion.div>
+      ) : (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center text-slate-500 text-sm">
+            <HelpCircle className="h-4 w-4 mr-1" />
+            <span>Select one answer</span>
+          </div>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!selectedChoice}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+          >
+            Check Answer
+          </Button>
+        </div>
       )}
     </div>
   );
