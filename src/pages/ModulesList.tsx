@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { ModuleCard } from '@/components/ModuleCard';
@@ -98,7 +97,7 @@ const ModulesList = () => {
             </div>
             
             <div className="bg-white/10 backdrop-blur-sm px-4 py-3 rounded-lg ml-auto">
-              <div className="text-2xl font-bold">{userProgress.totalXp || 0}</div>
+              <div className="text-2xl font-bold">{userProgress.xpPoints || 0}</div>
               <div className="text-xs text-blue-100">Total XP Earned</div>
             </div>
           </div>
