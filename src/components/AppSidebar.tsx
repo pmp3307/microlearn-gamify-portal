@@ -1,4 +1,5 @@
-import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User } from 'lucide-react';
+
+import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User, Award } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +23,7 @@ export function AppSidebar() {
     { icon: Home, label: 'Dashboard', path: '/' },
     { icon: Book, label: 'Modules', path: '/modules' },
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
+    { icon: Award, label: 'My Progress', path: '/progress' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { icon: Map, label: 'Roadmap', path: '/roadmap' },
     { icon: Settings, label: 'Settings', path: '/settings' },

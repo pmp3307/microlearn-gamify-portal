@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import { UserProgress } from '@/components/UserProgress';
+import { toast } from '@/hooks/use-toast';
 
 const UserProfile = () => {
   const { user, profile, updateProfile, isLoading } = useAuth();
@@ -45,10 +48,23 @@ const UserProfile = () => {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProfile({ 
-      full_name: fullName,
-      username: username 
-    });
+    try {
+      await updateProfile({ 
+        full_name: fullName,
+        username: username 
+      });
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
+      });
+      console.error("Profile update error:", error);
+    }
   };
 
   const validatePasswords = () => {
@@ -73,7 +89,10 @@ const UserProfile = () => {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    alert('Password updated successfully!');
+    toast({
+      title: "Password updated",
+      description: "Your password has been updated successfully."
+    });
   };
 
   const getInitials = (name: string | null) => {
@@ -132,7 +151,8 @@ const UserProfile = () => {
                       id="email"
                       type="email"
                       value={user.email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      disabled
+                      className="bg-muted"
                     />
                   </div>
                   <div className="space-y-2">
