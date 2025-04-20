@@ -1,5 +1,5 @@
 
-import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User, Award } from 'lucide-react';
+import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -16,14 +16,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 
 export function AppSidebar() {
-  const { user, profile, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/' },
     { icon: Book, label: 'Modules', path: '/modules' },
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
-    { icon: Award, label: 'My Progress', path: '/progress' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { icon: Map, label: 'Roadmap', path: '/roadmap' },
     { icon: Settings, label: 'Settings', path: '/settings' },
@@ -32,11 +31,6 @@ export function AppSidebar() {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const getInitials = (name: string | null) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   return (
@@ -56,14 +50,14 @@ export function AppSidebar() {
           {user ? (
             <div className="px-4 mb-4 text-center">
               <Avatar className="h-16 w-16 mx-auto mb-2">
-                <AvatarImage src={profile?.avatar_url || ''} />
+                <AvatarImage src="" />
                 <AvatarFallback className="bg-elearn-blue text-white">
-                  {getInitials(profile?.full_name)}
+                  {user.name.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <div className="font-medium">{profile?.full_name || user.email}</div>
+              <div className="font-medium">{user.name}</div>
               <div className="text-xs text-muted-foreground">
-                Learner
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
               </div>
               <Button 
                 variant="outline" 
