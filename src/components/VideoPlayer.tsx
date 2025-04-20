@@ -21,7 +21,7 @@ interface VideoPlayerProps {
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ 
-  videoUrl = 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', 
+  videoUrl = 'https://csxoazpnhatnvioopndo.supabase.co/storage/v1/object/public/projectimages//Master%20the%20PMP%20Exam%20(11).mp4', 
   showReactions = true,
   onComplete,
   username = '@username',
