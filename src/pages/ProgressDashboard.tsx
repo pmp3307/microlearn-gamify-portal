@@ -1,4 +1,3 @@
-
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { UserProgress } from '@/components/UserProgress';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Award, Download, Share2, Trophy, FileText, Clock } from 'lucide-react';
+import { Award, Download, Share2, Trophy, FileText, Clock, Book } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import {
