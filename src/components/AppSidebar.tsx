@@ -1,4 +1,3 @@
-
 import { Home, Book, Trophy, BarChart3, Settings, LogOut, Map, User } from 'lucide-react';
 import {
   Sidebar,
@@ -16,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 
 export function AppSidebar() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   
   const menuItems = [
@@ -31,6 +30,11 @@ export function AppSidebar() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const getInitials = (name: string | null) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   return (
@@ -50,14 +54,14 @@ export function AppSidebar() {
           {user ? (
             <div className="px-4 mb-4 text-center">
               <Avatar className="h-16 w-16 mx-auto mb-2">
-                <AvatarImage src="" />
+                <AvatarImage src={profile?.avatar_url || ''} />
                 <AvatarFallback className="bg-elearn-blue text-white">
-                  {user.name.split(' ').map(n => n[0]).join('')}
+                  {getInitials(profile?.full_name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="font-medium">{user.name}</div>
+              <div className="font-medium">{profile?.full_name || user.email}</div>
               <div className="text-xs text-muted-foreground">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                Learner
               </div>
               <Button 
                 variant="outline" 

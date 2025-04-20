@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MainLayout } from '@/components/layouts/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,9 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 
 const UserProfile = () => {
-  const { user, updateProfile, isLoading } = useAuth();
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const { user, profile, updateProfile, isLoading } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [username, setUsername] = useState(profile?.username || '');
   const [bio, setBio] = useState('Learning enthusiast passionate about technology and education.');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailUpdatesEnabled, setEmailUpdatesEnabled] = useState(true);
@@ -46,7 +45,10 @@ const UserProfile = () => {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProfile({ name, email });
+    await updateProfile({ 
+      full_name: fullName,
+      username: username 
+    });
   };
 
   const validatePasswords = () => {
@@ -67,8 +69,6 @@ const UserProfile = () => {
     
     if (!validatePasswords()) return;
     
-    // In a real app, we would send this to an API
-    // For demo purposes, just show a success message
     await new Promise(resolve => setTimeout(resolve, 1000));
     setCurrentPassword('');
     setNewPassword('');
@@ -76,22 +76,27 @@ const UserProfile = () => {
     alert('Password updated successfully!');
   };
 
+  const getInitials = (name: string | null) => {
+    if (!name) return user?.email?.[0].toUpperCase() || 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row gap-6 md:items-center">
           <Avatar className="h-24 w-24">
-            <AvatarImage src="" alt={user.name} />
-            <AvatarFallback className="text-xl">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+            <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || user.email} />
+            <AvatarFallback className="text-xl">{getInitials(profile?.full_name)}</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold">{user.name}</h1>
+            <h1 className="text-3xl font-bold">{profile?.full_name || user.email}</h1>
             <p className="text-muted-foreground">{user.email}</p>
             <div className="flex items-center mt-2 text-sm">
               <span className="bg-elearn-blue text-white px-2 py-0.5 rounded-full text-xs font-medium">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                Learner
               </span>
-              <span className="ml-2 text-muted-foreground">Member since 2023</span>
+              <span className="ml-2 text-muted-foreground">Member since {new Date(user.created_at).getFullYear()}</span>
             </div>
           </div>
         </div>
@@ -117,8 +122,8 @@ const UserProfile = () => {
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -126,7 +131,7 @@ const UserProfile = () => {
                     <Input
                       id="email"
                       type="email"
-                      value={email}
+                      value={user.email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
