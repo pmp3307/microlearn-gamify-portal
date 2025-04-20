@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,14 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const { register, isLoading } = useAuth();
+  const { register, user, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const validatePasswords = () => {
     if (password !== confirmPassword) {
@@ -35,8 +41,7 @@ const Register = () => {
     if (!validatePasswords()) return;
     
     try {
-      await register(name, email, password);
-      navigate('/');
+      await register(email, password, name);
     } catch (error) {
       // Error is handled inside the register function
     }
