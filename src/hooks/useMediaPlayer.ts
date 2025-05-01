@@ -1,16 +1,33 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+
+// Types for tracking mechanisms
+interface TrackingData {
+  objectId?: string;
+  verb: string;
+  result?: {
+    completion?: boolean;
+    duration?: number;
+    progress?: number;
+  };
+}
 
 interface UseMediaPlayerOptions {
   onComplete?: () => void;
   url?: string;
+  trackProgress?: boolean;
+  learningObjectId?: string;
 }
 
 /**
- * Custom hook for media player functionality
+ * Custom hook for media player functionality with SCORM and xAPI support
  */
-export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) => {
+export const useMediaPlayer = ({ 
+  onComplete, 
+  url,
+  trackProgress = false,
+  learningObjectId
+}: UseMediaPlayerOptions = {}) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,6 +44,158 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
   
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const processedUrlRef = useRef<string>('');
+  
+  // SCORM API reference
+  const scormAPIRef = useRef<any>(null);
+  const lastTrackedProgressRef = useRef<number>(0);
+  
+  // Initialize SCORM API
+  useEffect(() => {
+    if (trackProgress) {
+      // Try to find SCORM API in parent windows (for LMS integration)
+      try {
+        let win = window;
+        let findAttempts = 0;
+        const findAPI = (win: Window): any => {
+          // Search for standard SCORM 2004 API
+          let API = win?.API_1484_11;
+          if (API) return API;
+          
+          // Search for SCORM 1.2 API
+          API = win?.API;
+          if (API) return API;
+          
+          // Search in parent if we're in an iframe
+          if (win.parent && win.parent !== win) {
+            return findAPI(win.parent);
+          }
+          
+          return null;
+        };
+        
+        while (!scormAPIRef.current && findAttempts < 10) {
+          scormAPIRef.current = findAPI(win);
+          findAttempts++;
+          
+          // If we can't find it, try the parent window
+          if (!scormAPIRef.current && win.parent && win.parent !== win) {
+            win = win.parent;
+          } else {
+            break;
+          }
+        }
+        
+        if (scormAPIRef.current) {
+          console.log("SCORM API found");
+          // Initialize communication with SCORM
+          if (typeof scormAPIRef.current.Initialize === 'function') {
+            // SCORM 2004
+            scormAPIRef.current.Initialize("");
+          } else if (typeof scormAPIRef.current.LMSInitialize === 'function') {
+            // SCORM 1.2
+            scormAPIRef.current.LMSInitialize("");
+          }
+        } else {
+          console.log("SCORM API not found - running in standalone mode");
+        }
+      } catch (e) {
+        console.error("Error initializing SCORM API:", e);
+      }
+    }
+    
+    return () => {
+      // Terminate SCORM session on unmount
+      if (scormAPIRef.current) {
+        try {
+          if (typeof scormAPIRef.current.Terminate === 'function') {
+            // SCORM 2004
+            scormAPIRef.current.Terminate("");
+          } else if (typeof scormAPIRef.current.LMSFinish === 'function') {
+            // SCORM 1.2
+            scormAPIRef.current.LMSFinish("");
+          }
+        } catch (e) {
+          console.error("Error terminating SCORM session:", e);
+        }
+      }
+    };
+  }, [trackProgress]);
+  
+  // Track progress
+  const trackMediaEvent = (verb: string, progress?: number) => {
+    if (!trackProgress) return;
+    
+    const trackingData: TrackingData = {
+      objectId: learningObjectId || url,
+      verb,
+      result: {}
+    };
+    
+    if (progress !== undefined) {
+      trackingData.result!.progress = progress;
+    }
+    
+    if (verb === 'completed') {
+      trackingData.result!.completion = true;
+      trackingData.result!.duration = duration;
+    }
+    
+    // Track via SCORM if available
+    if (scormAPIRef.current) {
+      try {
+        if (typeof scormAPIRef.current.SetValue === 'function') {
+          // SCORM 2004
+          if (progress !== undefined) {
+            scormAPIRef.current.SetValue("cmi.progress_measure", progress.toString());
+          }
+          if (verb === 'completed') {
+            scormAPIRef.current.SetValue("cmi.completion_status", "completed");
+            scormAPIRef.current.SetValue("cmi.success_status", "passed");
+          }
+          scormAPIRef.current.Commit("");
+        } else if (typeof scormAPIRef.current.LMSSetValue === 'function') {
+          // SCORM 1.2
+          if (verb === 'completed') {
+            scormAPIRef.current.LMSSetValue("cmi.core.lesson_status", "completed");
+          }
+          // SCORM 1.2 doesn't have a direct progress measure, but we can set session time
+          scormAPIRef.current.LMSCommit("");
+        }
+      } catch (e) {
+        console.error("Error setting SCORM values:", e);
+      }
+    }
+    
+    // Track via xAPI if function is available in window
+    if (window.ADL && window.ADL.XAPIWrapper) {
+      try {
+        const statement = {
+          actor: {
+            name: "User",
+            mbox: "mailto:user@example.com"
+          },
+          verb: {
+            id: `http://adlnet.gov/expapi/verbs/${verb}`,
+            display: { "en-US": verb }
+          },
+          object: {
+            id: trackingData.objectId,
+            definition: {
+              name: { "en-US": "Video Content" }
+            }
+          },
+          result: trackingData.result
+        };
+        
+        window.ADL.XAPIWrapper.sendStatement(statement);
+      } catch (e) {
+        console.error("Error sending xAPI statement:", e);
+      }
+    }
+    
+    // Debug tracking data
+    console.log("Tracking event:", trackingData);
+  };
 
   const resetControlsTimeout = () => {
     if (controlsTimeoutRef.current) {
@@ -56,10 +225,12 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
       });
       setIsPlaying(true);
       resetControlsTimeout();
+      trackMediaEvent('played');
     } else {
       media.pause();
       setIsPlaying(false);
       setShowControls(true);
+      trackMediaEvent('paused');
     }
   };
 
@@ -69,9 +240,29 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
 
     setCurrentTime(media.currentTime);
     
+    // Track progress at 10% intervals for SCORM/xAPI
+    if (trackProgress && media.duration > 0) {
+      const progressPercent = Math.floor((media.currentTime / media.duration) * 100) / 100;
+      
+      // Only track every 10% change to avoid too many events
+      const lastProgress = lastTrackedProgressRef.current;
+      const progressDiff = Math.abs(progressPercent - lastProgress);
+      
+      if (progressDiff >= 0.1) {
+        trackMediaEvent('progressed', progressPercent);
+        lastTrackedProgressRef.current = progressPercent;
+      }
+    }
+    
     // Check if playback is complete (with a small buffer)
-    if (media.currentTime >= media.duration - 0.5 && onComplete) {
-      onComplete();
+    if (media.currentTime >= media.duration - 0.5) {
+      if (trackProgress) {
+        trackMediaEvent('completed', 1.0);
+      }
+      
+      if (onComplete) {
+        onComplete();
+      }
     }
   };
 
@@ -80,6 +271,9 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
     if (!media) return;
     setDuration(media.duration);
     setIsError(false);
+    
+    // Track media loaded
+    trackMediaEvent('initialized');
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -126,11 +320,21 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
     const newTime = value[0];
     media.currentTime = newTime;
     setCurrentTime(newTime);
+    
+    // Track seeking event
+    if (trackProgress) {
+      trackMediaEvent('seeked');
+    }
   };
 
   const handleMediaError = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement, Event>) => {
     console.error("Media error:", e);
     setIsError(true);
+    
+    // Track error
+    if (trackProgress) {
+      trackMediaEvent('failed');
+    }
     
     // Check if this is an ElevenLabs URL to provide a specific message
     if (url && url.includes('elevenlabs.io/app/share')) {
@@ -158,14 +362,29 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
         setLiked(!liked);
         message = liked ? 'Removed like' : 'You liked this content!';
         icon = '❤️';
+        
+        // Track interaction
+        if (trackProgress) {
+          trackMediaEvent(liked ? 'unliked' : 'liked');
+        }
         return;
       case 'comment':
         message = 'Comment feature would open here';
         icon = '💬';
+        
+        // Track interaction
+        if (trackProgress) {
+          trackMediaEvent('commented');
+        }
         break;
       case 'share':
         message = 'Share options would appear here';
         icon = '↗️';
+        
+        // Track interaction
+        if (trackProgress) {
+          trackMediaEvent('shared');
+        }
         break;
     }
     
@@ -201,8 +420,18 @@ export const useMediaPlayer = ({ onComplete, url }: UseMediaPlayerOptions = {}) 
     handleSeek,
     handleMediaError,
     handleReaction,
-    // Export the setState functions explicitly
     setShowControls,
     setIsPlaying
   };
 };
+
+// Add global type definition for xAPI
+declare global {
+  interface Window {
+    ADL?: {
+      XAPIWrapper: {
+        sendStatement: (statement: any) => void;
+      };
+    };
+  }
+}

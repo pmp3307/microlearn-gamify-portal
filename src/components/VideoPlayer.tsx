@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { Play, Pause } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMediaPlayer } from '@/hooks/useMediaPlayer';
 import { processMediaUrl } from '@/utils/mediaUtils';
@@ -18,6 +18,13 @@ interface VideoPlayerProps {
   username?: string;
   description?: string;
   songTitle?: string;
+  // New accessibility props
+  ariaLabel?: string;
+  transcriptUrl?: string;
+  captionsUrl?: string;
+  // New tracking props
+  trackProgress?: boolean;
+  learningObjectId?: string;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ 
@@ -26,7 +33,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onComplete,
   username = '@username',
   description = 'This is a sample video description',
-  songTitle = 'Original Sound - Artist'
+  songTitle = 'Original Sound - Artist',
+  // Initialize accessibility props
+  ariaLabel = 'Video player',
+  transcriptUrl,
+  captionsUrl,
+  // Initialize tracking props
+  trackProgress = false,
+  learningObjectId
 }) => {
   const {
     videoRef,
@@ -57,7 +71,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     handleReaction,
     setShowControls,
     setIsPlaying
-  } = useMediaPlayer({ onComplete, url: videoUrl });
+  } = useMediaPlayer({ onComplete, url: videoUrl, trackProgress, learningObjectId });
+  
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLTrackElement>(null);
   
   // Process URL and set up media when URL changes
   useEffect(() => {
@@ -85,6 +102,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [videoUrl, setIsAudioOnly, setLoadingMessage, setIsError]);
 
+  // Load transcript if available
+  useEffect(() => {
+    if (transcriptUrl && transcriptRef.current) {
+      fetch(transcriptUrl)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to load transcript');
+          return response.text();
+        })
+        .then(text => {
+          if (transcriptRef.current) transcriptRef.current.innerHTML = text;
+        })
+        .catch(error => {
+          console.error('Error loading transcript:', error);
+        });
+    }
+  }, [transcriptUrl]);
+
   return (
     <div 
       className="relative w-full h-full bg-black rounded-xl overflow-hidden aspect-[9/16] max-h-[90vh] mx-auto shadow-lg transition-all duration-300 hover:shadow-xl"
@@ -94,6 +128,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setShowControls(false);
         }
       }}
+      role="region"
+      aria-label={ariaLabel}
     >
       {isError ? (
         <MediaLoadingError onRetry={() => setIsError(false)} />
@@ -112,21 +148,40 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 onError={handleMediaError}
                 onCanPlayThrough={() => console.log("Audio can play through")}
                 style={{ display: 'none' }}
+                aria-label={ariaLabel}
+                controls={false}
               />
             </>
           ) : (
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-contain bg-black"
-              src={processedUrlRef.current}
-              loop
-              playsInline
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              onEnded={() => setIsPlaying(false)}
-              onClick={handlePlayPause}
-              onError={handleMediaError}
-            />
+            <div className="video-container">
+              <video
+                ref={videoRef}
+                className="absolute inset-0 w-full h-full object-contain bg-black"
+                src={processedUrlRef.current}
+                loop
+                playsInline
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onEnded={() => setIsPlaying(false)}
+                onClick={handlePlayPause}
+                onError={handleMediaError}
+                aria-label={ariaLabel}
+                tabIndex={0}
+                // Accessibility attributes
+                aria-describedby={transcriptUrl ? "transcript" : undefined}
+              >
+                {captionsUrl && (
+                  <track 
+                    ref={trackRef}
+                    kind="captions" 
+                    src={captionsUrl} 
+                    srcLang="en" 
+                    label="English"
+                    default
+                  />
+                )}
+              </video>
+            </div>
           )}
         </>
       )}
@@ -144,13 +199,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             size="icon" 
             className="h-20 w-20 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 text-white transition-all duration-300 transform hover:scale-110"
             onClick={handlePlayPause}
+            aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? <Pause className="h-12 w-12" /> : <Play className="h-12 w-12 ml-1" />}
           </Button>
         </div>
       )}
       
-      {/* Media controls */}
+      {/* Media controls with accessibility */}
       <VideoControls
         isPlaying={isPlaying}
         isMuted={isMuted}
@@ -178,6 +234,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           description={description}
           songTitle={songTitle}
         />
+      )}
+      
+      {/* Hidden transcript for screen readers */}
+      {transcriptUrl && (
+        <div 
+          id="transcript" 
+          ref={transcriptRef} 
+          className="sr-only"
+          aria-live="polite"
+        ></div>
       )}
     </div>
   );

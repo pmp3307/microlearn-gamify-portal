@@ -5,7 +5,7 @@ import { VideoUploader } from './VideoUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Settings, PlayCircle, Upload, CheckCircle } from 'lucide-react';
+import { Settings, PlayCircle, Upload, CheckCircle, FileText, ClosedCaptions } from 'lucide-react';
 
 interface VideoModuleProps {
   title?: string;
@@ -15,6 +15,11 @@ interface VideoModuleProps {
   allowUpload?: boolean;
   showReactions?: boolean;
   onComplete?: () => void;
+  // SCORM & Accessibility props
+  learningObjectId?: string;
+  trackProgress?: boolean;
+  transcriptUrl?: string;
+  captionsUrl?: string;
 }
 
 export const VideoModule: React.FC<VideoModuleProps> = ({
@@ -24,11 +29,17 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
   onVideoChange,
   allowUpload = true,
   showReactions = true,
-  onComplete
+  onComplete,
+  // SCORM & Accessibility props
+  learningObjectId,
+  trackProgress = false,
+  transcriptUrl,
+  captionsUrl
 }) => {
   const [videoUrl, setVideoUrl] = useState(defaultVideoUrl);
   const [activeTab, setActiveTab] = useState<string>("player");
   const [completed, setCompleted] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
 
   const handleVideoSelected = (url: string) => {
     setVideoUrl(url);
@@ -64,12 +75,26 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
             <CardTitle className="text-xl text-slate-800">{title}</CardTitle>
             <p className="text-sm text-slate-500 mt-1">{description}</p>
           </div>
-          {completed && (
-            <div className="flex items-center text-sm font-medium text-green-600">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Completed
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {transcriptUrl && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowTranscript(!showTranscript)}
+                className="text-xs flex items-center gap-1"
+                aria-pressed={showTranscript}
+              >
+                <FileText className="h-3 w-3" />
+                {showTranscript ? "Hide" : "Show"} Transcript
+              </Button>
+            )}
+            {completed && (
+              <div className="flex items-center text-sm font-medium text-green-600">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Completed
+              </div>
+            )}
+          </div>
         </div>
       </CardHeader>
       
@@ -90,14 +115,26 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
             </TabsList>
             
             {videoUrl && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setActiveTab(activeTab === "player" ? "settings" : "player")}
-                className="text-xs"
-              >
-                {activeTab === "player" ? "Change Media" : "Back to Player"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {captionsUrl && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    aria-label="Toggle captions"
+                  >
+                    <ClosedCaptions className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setActiveTab(activeTab === "player" ? "settings" : "player")}
+                  className="text-xs"
+                >
+                  {activeTab === "player" ? "Change Media" : "Back to Player"}
+                </Button>
+              </div>
             )}
           </div>
           
@@ -108,6 +145,11 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
                   videoUrl={videoUrl} 
                   showReactions={showReactions}
                   onComplete={handleVideoComplete}
+                  // Pass through the accessibility and SCORM props
+                  transcriptUrl={transcriptUrl}
+                  captionsUrl={captionsUrl}
+                  trackProgress={trackProgress}
+                  learningObjectId={learningObjectId}
                 />
               </div>
             ) : (
@@ -136,6 +178,18 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
             />
           </TabsContent>
         </Tabs>
+        
+        {/* Transcript panel */}
+        {showTranscript && transcriptUrl && (
+          <div className="p-4 bg-slate-50 border-t border-slate-100 max-h-60 overflow-y-auto">
+            <h3 className="text-sm font-medium mb-2 flex items-center">
+              <FileText className="h-4 w-4 mr-1" /> Transcript
+            </h3>
+            <div id="transcript-content" className="text-sm text-slate-700">
+              Loading transcript...
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
