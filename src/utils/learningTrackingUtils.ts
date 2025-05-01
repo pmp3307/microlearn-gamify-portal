@@ -3,6 +3,25 @@
  * Utility functions for SCORM and xAPI tracking integrations
  */
 
+// Define proper type for XAPIWrapper
+interface XAPIWrapper {
+  changeConfig: (config: {endpoint?: string, auth?: string}) => void;
+  sendStatement: (statement: any) => void;
+}
+
+// Define global interfaces for SCORM APIs
+declare global {
+  interface Window {
+    ADL?: {
+      XAPIWrapper: XAPIWrapper;
+    };
+    // SCORM 2004 API
+    API_1484_11?: any;
+    // SCORM 1.2 API
+    API?: any;
+  }
+}
+
 /**
  * Loads the xAPI (TinCan) library dynamically
  * @param endpoint The LRS endpoint URL
@@ -77,7 +96,7 @@ export const detectSCORMAPI = (): boolean => {
       
       // Move to parent window if we're in an iframe
       if (win.parent && win.parent !== win) {
-        win = win.parent;
+        win = win.parent as Window;
       } else {
         break;
       }

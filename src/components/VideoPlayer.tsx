@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Subtitles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMediaPlayer } from '@/hooks/useMediaPlayer';
 import { processMediaUrl } from '@/utils/mediaUtils';

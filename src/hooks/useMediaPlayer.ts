@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +18,22 @@ interface UseMediaPlayerOptions {
   url?: string;
   trackProgress?: boolean;
   learningObjectId?: string;
+}
+
+// Add proper type definitions for SCORM APIs
+declare global {
+  interface Window {
+    // SCORM 2004 API
+    API_1484_11?: any;
+    // SCORM 1.2 API
+    API?: any;
+    // xAPI
+    ADL?: {
+      XAPIWrapper: {
+        sendStatement: (statement: any) => void;
+      };
+    };
+  }
 }
 
 /**
@@ -54,20 +71,20 @@ export const useMediaPlayer = ({
     if (trackProgress) {
       // Try to find SCORM API in parent windows (for LMS integration)
       try {
-        let win = window;
+        let win: Window = window;
         let findAttempts = 0;
         const findAPI = (win: Window): any => {
           // Search for standard SCORM 2004 API
-          let API = win?.API_1484_11;
+          let API = win.API_1484_11;
           if (API) return API;
           
           // Search for SCORM 1.2 API
-          API = win?.API;
+          API = win.API;
           if (API) return API;
           
           // Search in parent if we're in an iframe
           if (win.parent && win.parent !== win) {
-            return findAPI(win.parent);
+            return findAPI(win.parent as Window);
           }
           
           return null;
@@ -79,7 +96,7 @@ export const useMediaPlayer = ({
           
           // If we can't find it, try the parent window
           if (!scormAPIRef.current && win.parent && win.parent !== win) {
-            win = win.parent;
+            win = win.parent as Window;
           } else {
             break;
           }
@@ -424,14 +441,3 @@ export const useMediaPlayer = ({
     setIsPlaying
   };
 };
-
-// Add global type definition for xAPI
-declare global {
-  interface Window {
-    ADL?: {
-      XAPIWrapper: {
-        sendStatement: (statement: any) => void;
-      };
-    };
-  }
-}

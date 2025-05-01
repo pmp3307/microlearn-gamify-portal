@@ -9,7 +9,278 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      module_feedback: {
+        Row: {
+          created_at: string
+          feedback_text: string | null
+          id: string
+          module_id: string
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          module_id: string
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          module_id?: string
+          rating?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_feedback_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_sections: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          module_id: string
+          order_index: number
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          module_id: string
+          order_index: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          module_id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_sections_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modules: {
+        Row: {
+          created_at: string
+          description: string
+          difficulty: string
+          estimated_minutes: number
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+          xp_reward: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          difficulty: string
+          estimated_minutes: number
+          id?: string
+          image_url?: string | null
+          title: string
+          updated_at?: string
+          xp_reward: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          difficulty?: string
+          estimated_minutes?: number
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      section_questions: {
+        Row: {
+          correct_answer: Json
+          created_at: string
+          id: string
+          options: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          section_id: string
+        }
+        Insert: {
+          correct_answer: Json
+          created_at?: string
+          id?: string
+          options?: Json | null
+          order_index: number
+          question_text: string
+          question_type: string
+          section_id: string
+        }
+        Update: {
+          correct_answer?: Json
+          created_at?: string
+          id?: string
+          options?: Json | null
+          order_index?: number
+          question_text?: string
+          question_type?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "module_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_name: string
+          achievement_type: string
+          awarded_at: string
+          certificate_url: string | null
+          description: string
+          id: string
+          module_id: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_name: string
+          achievement_type: string
+          awarded_at?: string
+          certificate_url?: string | null
+          description: string
+          id?: string
+          module_id?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_name?: string
+          achievement_type?: string
+          awarded_at?: string
+          certificate_url?: string | null
+          description?: string
+          id?: string
+          module_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress: {
+        Row: {
+          completion_percentage: number
+          created_at: string
+          id: string
+          is_completed: boolean
+          last_accessed: string
+          module_id: string
+          section_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completion_percentage?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          last_accessed?: string
+          module_id: string
+          section_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completion_percentage?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          last_accessed?: string
+          module_id?: string
+          section_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_progress_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "module_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

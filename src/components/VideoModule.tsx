@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoUploader } from './VideoUploader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Settings, PlayCircle, Upload, CheckCircle, FileText, ClosedCaptions } from 'lucide-react';
+import { Settings, PlayCircle, Upload, CheckCircle, FileText, Subtitles } from 'lucide-react';
 
 interface VideoModuleProps {
   title?: string;
@@ -123,7 +122,7 @@ export const VideoModule: React.FC<VideoModuleProps> = ({
                     className="h-8 w-8 rounded-full"
                     aria-label="Toggle captions"
                   >
-                    <ClosedCaptions className="h-4 w-4" />
+                    <Subtitles className="h-4 w-4" />
                   </Button>
                 )}
                 <Button 
